@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLAUDE_DIR="${HOME}/.claude"
 CACHE_DIR="${CLAUDE_DIR}/plugins/cache/${MARKETPLACE}/${PLUGIN_NAME}/${PLUGIN_VERSION}"
 INSTALLED_PLUGINS="${CLAUDE_DIR}/plugins/installed_plugins.json"
+INSTALL_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
 # ── Prerequisites ──────────────────────────────────────────────────────────────
 
@@ -23,14 +24,88 @@ if ! command -v python3 &>/dev/null; then
   exit 1
 fi
 
-# ── Create cache directories ───────────────────────────────────────────────────
+# ── Create cache and marketplace directories ───────────────────────────────────
 
 echo "Installing ${PLUGIN_NAME} v${PLUGIN_VERSION}..."
 echo ""
 
+mkdir -p "${CACHE_DIR}/.claude-plugin"
 mkdir -p "${CACHE_DIR}/agents"
 mkdir -p "${CACHE_DIR}/skills/tdd-clean-code-workflow"
 mkdir -p "${CACHE_DIR}/skills/analyse-code-base-for-tdd"
+
+MARKETPLACE_DIR="${CLAUDE_DIR}/plugins/marketplaces/${MARKETPLACE}/.claude-plugin"
+mkdir -p "${MARKETPLACE_DIR}"
+
+# ── Write plugin manifest ──────────────────────────────────────────────────────
+
+cat > "${CACHE_DIR}/.claude-plugin/plugin.json" <<PLUGIN_JSON
+{
+  "name": "${PLUGIN_NAME}",
+  "description": "TDD and Clean Code engineering lifecycle with quality gates, 15 specialised agents, and audit trail.",
+  "author": {
+    "name": "Marco Tedone",
+    "email": "marco.tedone@gmail.com"
+  }
+}
+PLUGIN_JSON
+
+# ── Register local marketplace in known_marketplaces.json ─────────────────────
+
+KNOWN_MARKETPLACES="${CLAUDE_DIR}/plugins/known_marketplaces.json"
+MARKETPLACE_INSTALL_DIR="${CLAUDE_DIR}/plugins/marketplaces/${MARKETPLACE}"
+
+python3 - <<PYEOF
+import json, os
+
+path = '${KNOWN_MARKETPLACES}'
+if not os.path.exists(path):
+    data = {}
+else:
+    with open(path, 'r') as f:
+        data = json.load(f)
+
+if '${MARKETPLACE}' not in data:
+    data['${MARKETPLACE}'] = {
+        'source': {
+            'source': 'local',
+            'path': '${MARKETPLACE_INSTALL_DIR}'
+        },
+        'installLocation': '${MARKETPLACE_INSTALL_DIR}',
+        'lastUpdated': '${INSTALL_DATE}'
+    }
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+    print('Local marketplace registered in known_marketplaces.json.')
+else:
+    print('Local marketplace already registered — skipped.')
+PYEOF
+
+# ── Write marketplace manifest ─────────────────────────────────────────────────
+
+cat > "${MARKETPLACE_DIR}/marketplace.json" <<MKTJSON
+{
+  "\$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "${MARKETPLACE}",
+  "description": "Local marketplace for user-installed Claude Code plugins",
+  "owner": {
+    "name": "Local",
+    "email": "local"
+  },
+  "plugins": [
+    {
+      "name": "${PLUGIN_NAME}",
+      "description": "TDD and Clean Code engineering lifecycle with quality gates, 15 specialised agents, and audit trail.",
+      "author": {
+        "name": "Marco Tedone",
+        "email": "marco.tedone@gmail.com"
+      },
+      "category": "development",
+      "source": "${CACHE_DIR}"
+    }
+  ]
+}
+MKTJSON
 
 # ── Copy plugin source files ───────────────────────────────────────────────────
 
@@ -47,8 +122,6 @@ AGENT_COUNT=$(ls "${CACHE_DIR}/agents/" | wc -l | tr -d ' ')
 if [[ ! -f "${INSTALLED_PLUGINS}" ]]; then
   echo '{"version": 2, "plugins": {}}' > "${INSTALLED_PLUGINS}"
 fi
-
-INSTALL_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
 
 python3 - <<PYEOF
 import json
@@ -67,6 +140,92 @@ data['plugins'][key] = [{
 
 with open('${INSTALLED_PLUGINS}', 'w') as f:
     json.dump(data, f, indent=2)
+PYEOF
+
+# ── Register in plugin-catalog-cache.json ─────────────────────────────────────
+
+CATALOG_JSON="${CLAUDE_DIR}/plugins/plugin-catalog-cache.json"
+SKILL1_CHARS=$(wc -c < "${CACHE_DIR}/skills/tdd-clean-code-workflow/SKILL.md" | tr -d ' ')
+SKILL2_CHARS=$(wc -c < "${CACHE_DIR}/skills/analyse-code-base-for-tdd/SKILL.md" | tr -d ' ')
+
+python3 - <<PYEOF
+import json, os, re
+
+path = '${CATALOG_JSON}'
+if not os.path.exists(path):
+    print('plugin-catalog-cache.json not found — skipping catalog registration.')
+else:
+    with open(path, 'r') as f:
+        data = json.load(f)
+
+    def frontmatter_chars(skill_path):
+        with open(skill_path) as f:
+            content = f.read()
+        m = re.search(r'^---\n.*?\n---', content, re.DOTALL)
+        return len(m.group(0)) if m else 0
+
+    s1_always = frontmatter_chars('${CACHE_DIR}/skills/tdd-clean-code-workflow/SKILL.md')
+    s2_always = frontmatter_chars('${CACHE_DIR}/skills/analyse-code-base-for-tdd/SKILL.md')
+    s1_full   = int('${SKILL1_CHARS}')
+    s2_full   = int('${SKILL2_CHARS}')
+
+    key = '${PLUGIN_NAME}@${MARKETPLACE}'
+    data['catalog']['plugins'][key] = {
+        'plugin': '${PLUGIN_NAME}',
+        'tokens': {
+            'claude-opus-4-7':   {'always_on': 120, 'on_invoke': 2800},
+            'claude-sonnet-4-6': {'always_on': 90,  'on_invoke': 2100}
+        },
+        'components': {
+            'commands': [], 'agents': [],
+            'skills': [
+                {'name': 'tdd-clean-code-workflow',    'chars': {'always_on': s1_always, 'on_invoke': s1_full}},
+                {'name': 'analyse-code-base-for-tdd',  'chars': {'always_on': s2_always, 'on_invoke': s2_full}}
+            ],
+            'hooks': [], 'mcpServers': [], 'lspServers': []
+        },
+        'unique_installs': 1,
+        'last_updated': '${INSTALL_DATE}',
+        'marketplace_entry': {
+            'name': '${PLUGIN_NAME}',
+            'description': 'TDD and Clean Code engineering lifecycle with quality gates, 15 specialised agents, and audit trail.',
+            'author': {'name': 'Marco Tedone'},
+            'source': 'local',
+            'category': 'development'
+        },
+        'source': key,
+        'sha': None,
+        'source_sha': None
+    }
+
+    with open(path, 'w') as f:
+        json.dump(data, f, indent=2)
+    print('Plugin catalog entry registered.')
+PYEOF
+
+# ── Enable plugin in settings.json ────────────────────────────────────────────
+
+SETTINGS_JSON="${CLAUDE_DIR}/settings.json"
+
+python3 - <<PYEOF
+import json, os
+
+path = '${SETTINGS_JSON}'
+if os.path.exists(path):
+    with open(path, 'r') as f:
+        settings = json.load(f)
+else:
+    settings = {}
+
+key = '${PLUGIN_NAME}@${MARKETPLACE}'
+enabled = settings.setdefault('enabledPlugins', {})
+if not enabled.get(key):
+    enabled[key] = True
+    with open(path, 'w') as f:
+        json.dump(settings, f, indent=2)
+    print('Plugin enabled in settings.json.')
+else:
+    print('Plugin already enabled in settings.json — skipped.')
 PYEOF
 
 # ── Commit/Push Gate hook ──────────────────────────────────────────────────────
