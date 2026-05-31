@@ -226,3 +226,26 @@ Quality Gates: Gate 0 through Gate 8 defined and active.
 Reusable Learning: Always invoke architect-agent before any test is written. Security must be reviewed twice — before and after implementation.
 Rule Changes: None — initial installation.
 Follow-Up: Validate gate enforcement on first feature implementation.
+
+## /analyse-code-base-for-tdd Skill Rules
+
+**Invoke this skill when:**
+- The user asks about TDD compliance, test coverage, or test readiness of an existing codebase
+- The user wants to introduce TDD into an existing project that lacks tests
+- The user asks Claude to assess, audit, or analyse code before writing tests
+- The user asks questions like "where do I start with TDD?", "what needs tests?", or "is this codebase TDD-ready?"
+
+**During this skill, Claude MUST NOT:**
+- Write any implementation code
+- Write any tests or test stubs
+- Modify any existing source files
+- Make any assumptions about how tests should be implemented — analysis and planning only
+
+**What this skill produces:**
+- A structured inventory of untested classes, methods, and modules
+- A prioritised list of candidates for TDD adoption (ordered by business risk, complexity, or coupling)
+- Identification of design issues (e.g. tight coupling, missing interfaces, static dependencies) that must be resolved before tests can be written
+- A recommended sequence for applying TDD incrementally
+
+**How findings feed into /tdd-clean-code-workflow:**
+The output of this skill serves as the direct input to `/tdd-clean-code-workflow`. The prioritised candidate list defines which unit of code to target first, the identified design issues inform any refactoring needed before the RED phase begins, and the recommended sequence sets the order of TDD iterations. Do not start `/tdd-clean-code-workflow` without first running this skill on an existing codebase that lacks tests.

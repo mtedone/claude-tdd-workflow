@@ -16,29 +16,81 @@ No phase may be skipped. Every agent invocation is visible to the developer. Eve
 
 ---
 
-## Installation
+## Repository Structure
 
-### 1. Copy the plugin into your project
+This repository is the **source** of the plugin. The layout matches the Claude Code plugin format so it can be installed directly.
 
-```bash
-cp -r claude-tdd-cleancode-plugin/.claude/agents  <your-project>/.claude/agents
-cp -r claude-tdd-cleancode-plugin/skills          <your-project>/skills
-cp    claude-tdd-cleancode-plugin/CLAUDE.md       <your-project>/CLAUDE.md
+```
+agents/                                  ← 15 specialised subagent definitions
+  architect-agent.md
+  audit-agent.md
+  business-documentation-agent.md
+  clean-code-agent.md
+  cloud-agent.md
+  devops-agent.md
+  integration-agent.md
+  mcp-agent.md
+  operational-readiness-agent.md
+  planning-agent.md
+  research-agent.md
+  security-agent.md
+  technical-documentation-agent.md
+  testing-automation-agent.md
+  ui-ux-agent.md
+skills/
+  tdd-clean-code-workflow/
+    SKILL.md                             ← /tdd-clean-code-workflow skill
+  analyse-code-base-for-tdd/
+    SKILL.md                             ← /analyse-code-base-for-tdd skill
+CLAUDE.md                               ← plugin governance rules
+README.md
 ```
 
-If your project already has a `CLAUDE.md`, append the contents of this plugin's `CLAUDE.md` to your existing file.
+---
+
+## Installation
+
+### Option A — Copy into a project
+
+```bash
+# Clone the plugin source
+git clone https://github.com/mtedone/claude-tdd-workflow-java.git
+
+# Copy agents and skills into your project
+cp -r claude-tdd-workflow-java/agents  <your-project>/.claude/agents
+cp -r claude-tdd-workflow-java/skills  <your-project>/skills
+
+# Append plugin rules to your project CLAUDE.md
+cat claude-tdd-workflow-java/CLAUDE.md >> <your-project>/CLAUDE.md
+```
+
+### Option B — Install globally into Claude Code
+
+```bash
+# Create the plugin cache directory
+CACHE=~/.claude/plugins/cache/local/claude-tdd-cleancode-plugin/1.0.0
+mkdir -p "$CACHE/agents" "$CACHE/skills/tdd-clean-code-workflow" "$CACHE/skills/analyse-code-base-for-tdd"
+
+# Copy all plugin files
+cp agents/*.md                                      "$CACHE/agents/"
+cp skills/tdd-clean-code-workflow/SKILL.md          "$CACHE/skills/tdd-clean-code-workflow/"
+cp skills/analyse-code-base-for-tdd/SKILL.md        "$CACHE/skills/analyse-code-base-for-tdd/"
+cp CLAUDE.md README.md                              "$CACHE/"
+```
+
+Then register the plugin in `~/.claude/plugins/installed_plugins.json` under the key `claude-tdd-cleancode-plugin@local`.
 
 ### 2. Verify agent files are present
 
 ```bash
-ls .claude/agents/
+ls agents/
 ```
 
 Expected output:
 
 ```
-audit-agent.md
 architect-agent.md
+audit-agent.md
 business-documentation-agent.md
 clean-code-agent.md
 cloud-agent.md
@@ -64,7 +116,7 @@ claude
 
 ## Usage
 
-### Starting a new feature
+### Greenfield work — starting a new feature
 
 Type in Claude Code:
 
@@ -79,6 +131,16 @@ Would you like to enter Plan Mode?
 ```
 
 Answer `yes` to engage full planning, or `no` to proceed directly to architecture review.
+
+### Brownfield work — auditing an existing codebase
+
+Type in Claude Code:
+
+```
+/analyse-code-base-for-tdd
+```
+
+Claude will ask five scoping questions (directory, language, framework, scope, known problem areas), then run all 12 analysis dimensions in parallel and produce a scored compliance report and prioritised remediation plan.
 
 ### Manual agent invocation
 
@@ -227,15 +289,21 @@ This gate is enforced at two levels:
 
 ### Adding a new agent
 
-1. Create `.claude/agents/<your-agent>.md` following the frontmatter format used by existing agents.
+1. Create `agents/<your-agent>.md` following the frontmatter format used by existing agents.
 2. Assign a unique emoji label.
 3. Register the agent in `CLAUDE.md` under the `## Plugin Agents` section.
 4. Invoke `audit-agent` after the first use to record the addition.
 
+### Adding a new skill
+
+1. Create `skills/<your-skill>/SKILL.md` with the required frontmatter (`name`, `description`).
+2. Document the skill in this README under `## Skills Reference`.
+3. Record the change via `audit-agent`.
+
 ### Adding a new quality gate
 
 1. Define the gate in `CLAUDE.md` under `## Quality Gates`.
-2. Add the gate check to `skills/tdd-clean-code-workflow/SKILL.md`.
+2. Add the gate check to the relevant skill's `SKILL.md`.
 3. Record the change via `audit-agent`.
 
 ---
@@ -248,6 +316,131 @@ This gate is enforced at two levels:
 - No implementation code may be placed inside agent definition files.
 - All changes must be recorded in the audit log.
 - Security implications must be assessed for every change.
+
+---
+
+## Skills Reference
+
+This plugin provides two complementary skills. Use them together: run `/analyse-code-base-for-tdd` first on any existing codebase, then apply `/tdd-clean-code-workflow` to each remediation sprint and all future features.
+
+---
+
+### /tdd-clean-code-workflow
+
+**File:** `skills/tdd-clean-code-workflow/SKILL.md`
+
+**Purpose:** Enforces the complete Red-Green-Refactor TDD and Clean Code engineering lifecycle for every software change. This is the primary skill — it governs all new development and all intentional changes to existing code.
+
+**When to use:**
+- Starting any new feature, bug fix, or refactoring task
+- Any time code is being written or modified
+- After `/analyse-code-base-for-tdd` identifies a remediation item to address
+
+**How to invoke:**
+
+```
+/tdd-clean-code-workflow
+```
+
+Claude asks whether to enter Plan Mode, then orchestrates all 15 agents through the mandatory gate sequence.
+
+**Gate sequence enforced:**
+
+| Gate | Name |
+|------|------|
+| Gate 0 | Architecture Gate — architect-agent approves before tests |
+| Gate 1 | Plan Gate — plan produced before architecture |
+| Gate 2 | Test Gate — failing tests created before implementation |
+| Gate 3 | Security Test Gate — security-agent reviews tests |
+| Gate 4 | Implementation Gate — code written only to pass tests |
+| Gate 5 | Refactor Gate — clean-code-agent refactors; tests still pass |
+| Gate 6 | Final Security Gate — security-agent validates implementation |
+| Gate 7 | Operational Readiness Gate — deployment readiness confirmed |
+| Gate 8 | Audit Gate — audit-agent records decisions; CLAUDE.md updated |
+| Gate 9 | Commit/Push Gate — explicit user permission required |
+
+**Agents orchestrated:** All 15 plugin agents, invoked in sequence with visible labels.
+
+---
+
+### /analyse-code-base-for-tdd
+
+**File:** `skills/analyse-code-base-for-tdd/SKILL.md`
+
+**Purpose:** Retrospective audit of an existing codebase. Scores compliance across 12 dimensions against the TDD and Clean Code lifecycle, then produces a prioritised remediation plan with sprint-sized tasks mapped directly to `/tdd-clean-code-workflow` gates. This skill is read-only — it analyses and plans; it never writes code.
+
+**When to use:**
+- Before adopting this plugin on a codebase that was not built test-first
+- When onboarding an existing project and needing a baseline compliance score
+- When planning a refactoring or technical-debt sprint
+- After a period of rapid feature delivery to assess quality drift
+- When evaluating whether a codebase is safe to extend without structural remediation
+
+**How to invoke:**
+
+```
+/analyse-code-base-for-tdd
+```
+
+Claude asks five scoping questions before analysis begins:
+
+1. Which directory or repository to analyse
+2. Primary language and framework
+3. Analysis scope (full codebase, specific module, or specific layers)
+4. Existing documentation artefacts to read first
+5. Known problem areas to prioritise
+
+**12 analysis dimensions (run in parallel):**
+
+| # | Dimension | Agent |
+|---|-----------|-------|
+| 1 | Test Existence | 🟩 testing-automation-agent |
+| 2 | TDD Discipline | 🟩 testing-automation-agent |
+| 3 | Test Types Coverage | 🟩 testing-automation-agent |
+| 4 | Test Quality | 🟩 testing-automation-agent |
+| 5 | Test Independence | 🟩 testing-automation-agent |
+| 6 | Mock Discipline | 🟩 testing-automation-agent |
+| 7 | Coverage Metrics | 🟩 testing-automation-agent |
+| 8 | Documentation Alignment | 🟩 testing-automation-agent |
+| 9 | Clean Code Compliance | 🟨 clean-code-agent |
+| 10 | Architecture Boundary Integrity | 🟨 clean-code-agent |
+| 11 | Security Test Coverage | 🟥 security-agent |
+| 12 | CI/CD Integration | ⚫ devops-agent |
+
+**Outputs produced:**
+
+| Output | Description |
+|--------|-------------|
+| TDD Compliance Scorecard | Weighted score (0–100) across all dimensions with band: EXCELLENT / GOOD / PARTIAL / POOR / CRITICAL |
+| Analysis Report | Per-dimension findings, each with Severity, Location, Description, Evidence, and Recommended Fix |
+| Remediation Plan | Sprint-by-sprint action plan, prioritised by severity, with effort estimates and gate mappings |
+| Audit Log Entry | `🟢 audit-agent` appends the score and top findings to CLAUDE.md |
+
+**Scoring model:**
+
+| Dimension | Weight |
+|-----------|--------|
+| Test Existence | 20% |
+| TDD Discipline | 15% |
+| Test Types | 15% |
+| Test Quality | 10% |
+| Clean Code | 10% |
+| Architecture | 10% |
+| Security Tests | 10% |
+| CI/CD | 5% |
+| Coverage | 5% |
+
+| Score | Band | Urgency |
+|-------|------|---------|
+| 90–100 | EXCELLENT | Schedule maintenance in normal cadence |
+| 75–89 | GOOD | Address gaps this sprint |
+| 50–74 | PARTIAL | Pause new features; start remediation |
+| 25–49 | POOR | Dedicate remediation sprints immediately |
+| 0–24 | CRITICAL | Halt feature work; run stabilisation programme |
+
+**Relationship to /tdd-clean-code-workflow:**
+
+`/analyse-code-base-for-tdd` is the recommended precursor to `/tdd-clean-code-workflow` on brownfield projects. Each item in the remediation plan becomes the input to one `/tdd-clean-code-workflow` invocation, which runs the full Gate 0–9 lifecycle for that specific gap. On greenfield projects, skip the analysis skill and go directly to `/tdd-clean-code-workflow`.
 
 ---
 
