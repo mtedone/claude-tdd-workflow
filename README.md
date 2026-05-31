@@ -141,6 +141,12 @@ Use audit-agent to produce a final report.
 │               GATE 8 – Audit Gate                   │
 │                 🟢 audit-agent                      │
 │   (+ 🔷 technical-documentation-agent / 🔶 business-documentation-agent) │
+└─────────────────────┬───────────────────────────────┘
+                      │
+┌─────────────────────▼───────────────────────────────┐
+│           GATE 9 – Commit/Push Gate                 │
+│     Explicit user permission required               │
+│     Enforced by PreToolUse hook in settings.json    │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -181,6 +187,7 @@ Use audit-agent to produce a final report.
 | Gate 6 | Final Security Gate | Implementation validated against full security checklist |
 | Gate 7 | Operational Readiness Gate | Deployment readiness confirmed |
 | Gate 8 | Audit Gate | Full audit report produced and CLAUDE.md updated |
+| Gate 9 | Commit/Push Gate | Explicit user permission obtained before committing or pushing |
 
 ---
 
@@ -199,6 +206,22 @@ These are absolute limits enforced by `clean-code-agent`. No exceptions without 
 | Framework leakage into domain | FORBIDDEN |
 
 ---
+
+## Commit/Push Gate
+
+Claude must never commit or push code without explicit user permission. Before running any
+`git commit` or `git push`, Claude must:
+
+1. Show a summary: files changed, proposed commit message, target remote and branch.
+2. Ask: **"Do you want me to proceed with this commit/push?"**
+3. Wait for explicit confirmation.
+
+This gate is enforced at two levels:
+- **Harness hook** — a `PreToolUse` hook in `~/.claude/settings.json` fires a permission
+  prompt on every `git commit` and `git push` command, including those inside chained
+  commands (e.g. `git add . && git commit -m "..." && git push`).
+- **CLAUDE.md rule** — Claude is instructed to present a summary before attempting to act.
+
 
 ## Extension Model
 
