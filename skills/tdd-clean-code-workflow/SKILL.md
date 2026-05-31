@@ -1,3 +1,8 @@
+---
+name: tdd-clean-code-workflow
+description: Enforces a complete TDD and Clean Code engineering lifecycle with mandatory quality gates. Orchestrates 15 specialised agents across planning, architecture, testing, security, implementation, refactoring, operational readiness, and audit phases. Invoke for any new feature, bug fix, or significant change.
+---
+
 # Skill: tdd-clean-code-workflow
 
 ## Purpose
