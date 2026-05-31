@@ -18,9 +18,11 @@ No phase may be skipped. Every agent invocation is visible to the developer. Eve
 
 ## Repository Structure
 
-This is the source repository for the plugin. Clone it, run `install.sh`, and the plugin is live in Claude Code.
+This is the source repository for the plugin. Install it through the Marco Claude marketplace.
 
 ```
+  .claude-plugin/
+    plugin.json                      ← Claude plugin manifest
 agents/                              ← 15 specialised subagent definitions
   architect-agent.md
   audit-agent.md
@@ -43,8 +45,6 @@ skills/
   analyse-code-base-for-tdd/
     SKILL.md                         ← /analyse-code-base-for-tdd skill
 CLAUDE.md                           ← plugin governance rules (copied into Claude on install)
-install.sh                          ← one-command installer
-uninstall.sh                        ← one-command uninstaller
 README.md
 ```
 
@@ -52,35 +52,18 @@ README.md
 
 ## Installation
 
-### Prerequisites
-
-- [Claude Code](https://claude.ai/code) installed and configured (`~/.claude/` directory exists)
-- `python3` available on your `PATH` (used for plugin registration)
-
-### Install
+### Install From Marketplace
 
 ```bash
-git clone https://github.com/mtedone/claude-tdd-workflow-java.git
-cd claude-tdd-workflow-java
-./install.sh
+claude plugin marketplace add mtedone/marco-claude-marketplace
+claude plugin install claude-tdd-cleancode-plugin@marco-claude-marketplace
 ```
 
-That's it. The installer:
+Reload plugins or restart Claude Code after installation:
 
-1. Copies all 15 agents to `~/.claude/plugins/cache/local/claude-tdd-cleancode-plugin/1.0.0/agents/`
-2. Copies both skills to the same plugin cache
-3. Registers the plugin in `~/.claude/plugins/installed_plugins.json`
-4. Installs the **Commit/Push Gate hook** in `~/.claude/settings.json` (Gate 9 — requires your explicit permission before any `git commit` or `git push`)
-
-Restart Claude Code to activate.
-
-### Uninstall
-
-```bash
-./uninstall.sh
+```text
+/reload-plugins
 ```
-
-Removes the plugin cache and its registration. The Commit/Push Gate hook in `~/.claude/settings.json` is intentionally preserved — remove it manually if no longer needed.
 
 ### Verify
 
