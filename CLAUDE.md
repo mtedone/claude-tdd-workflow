@@ -102,6 +102,23 @@ Claude must enforce all quality gates before advancing to the next phase.
 | Gate 6 | Final Security Gate | Implementation validated against OWASP |
 | Gate 7 | Operational Readiness Gate | Deployment readiness confirmed |
 | Gate 8 | Audit Gate | Audit produced and CLAUDE.md updated |
+| Gate 9 | Commit/Push Gate | Explicit user permission obtained before committing or pushing |
+
+---
+
+## Commit and Push Gate (MANDATORY)
+
+Claude must NEVER commit or push code without explicit user permission.
+
+Before running any `git commit` or `git push` command, Claude MUST:
+
+1. Summarise what will be committed (files, proposed message, remote/branch).
+2. Ask explicitly: **"Do you want me to proceed with this commit/push?"**
+3. Wait for an affirmative response before running the git command.
+
+The harness enforces this via a PreToolUse hook — a permission prompt fires on every `git commit` and `git push`. Claude must not attempt to bypass it.
+
+**Gate 9 condition:** Explicit user confirmation received before `git commit` or `git push`.
 
 ---
 
