@@ -18,10 +18,10 @@ No phase may be skipped. Every agent invocation is visible to the developer. Eve
 
 ## Repository Structure
 
-This repository is the **source** of the plugin. The layout matches the Claude Code plugin format so it can be installed directly.
+This is the source repository for the plugin. Clone it, run `install.sh`, and the plugin is live in Claude Code.
 
 ```
-agents/                                  ← 15 specialised subagent definitions
+agents/                              ← 15 specialised subagent definitions
   architect-agent.md
   audit-agent.md
   business-documentation-agent.md
@@ -39,10 +39,12 @@ agents/                                  ← 15 specialised subagent definitions
   ui-ux-agent.md
 skills/
   tdd-clean-code-workflow/
-    SKILL.md                             ← /tdd-clean-code-workflow skill
+    SKILL.md                         ← /tdd-clean-code-workflow skill
   analyse-code-base-for-tdd/
-    SKILL.md                             ← /analyse-code-base-for-tdd skill
-CLAUDE.md                               ← plugin governance rules
+    SKILL.md                         ← /analyse-code-base-for-tdd skill
+CLAUDE.md                           ← plugin governance rules (copied into Claude on install)
+install.sh                          ← one-command installer
+uninstall.sh                        ← one-command uninstaller
 README.md
 ```
 
@@ -50,66 +52,43 @@ README.md
 
 ## Installation
 
-### Option A — Copy into a project
+### Prerequisites
+
+- [Claude Code](https://claude.ai/code) installed and configured (`~/.claude/` directory exists)
+- `python3` available on your `PATH` (used for plugin registration)
+
+### Install
 
 ```bash
-# Clone the plugin source
 git clone https://github.com/mtedone/claude-tdd-workflow-java.git
-
-# Copy agents and skills into your project
-cp -r claude-tdd-workflow-java/agents  <your-project>/.claude/agents
-cp -r claude-tdd-workflow-java/skills  <your-project>/skills
-
-# Append plugin rules to your project CLAUDE.md
-cat claude-tdd-workflow-java/CLAUDE.md >> <your-project>/CLAUDE.md
+cd claude-tdd-workflow-java
+./install.sh
 ```
 
-### Option B — Install globally into Claude Code
+That's it. The installer:
+
+1. Copies all 15 agents to `~/.claude/plugins/cache/local/claude-tdd-cleancode-plugin/1.0.0/agents/`
+2. Copies both skills to the same plugin cache
+3. Registers the plugin in `~/.claude/plugins/installed_plugins.json`
+4. Installs the **Commit/Push Gate hook** in `~/.claude/settings.json` (Gate 9 — requires your explicit permission before any `git commit` or `git push`)
+
+Restart Claude Code to activate.
+
+### Uninstall
 
 ```bash
-# Create the plugin cache directory
-CACHE=~/.claude/plugins/cache/local/claude-tdd-cleancode-plugin/1.0.0
-mkdir -p "$CACHE/agents" "$CACHE/skills/tdd-clean-code-workflow" "$CACHE/skills/analyse-code-base-for-tdd"
-
-# Copy all plugin files
-cp agents/*.md                                      "$CACHE/agents/"
-cp skills/tdd-clean-code-workflow/SKILL.md          "$CACHE/skills/tdd-clean-code-workflow/"
-cp skills/analyse-code-base-for-tdd/SKILL.md        "$CACHE/skills/analyse-code-base-for-tdd/"
-cp CLAUDE.md README.md                              "$CACHE/"
+./uninstall.sh
 ```
 
-Then register the plugin in `~/.claude/plugins/installed_plugins.json` under the key `claude-tdd-cleancode-plugin@local`.
+Removes the plugin cache and its registration. The Commit/Push Gate hook in `~/.claude/settings.json` is intentionally preserved — remove it manually if no longer needed.
 
-### 2. Verify agent files are present
+### Verify
 
-```bash
-ls agents/
-```
-
-Expected output:
+After restarting Claude Code, confirm both skills are available:
 
 ```
-architect-agent.md
-audit-agent.md
-business-documentation-agent.md
-clean-code-agent.md
-cloud-agent.md
-devops-agent.md
-integration-agent.md
-mcp-agent.md
-operational-readiness-agent.md
-planning-agent.md
-research-agent.md
-security-agent.md
-technical-documentation-agent.md
-testing-automation-agent.md
-ui-ux-agent.md
-```
-
-### 3. Start Claude Code
-
-```bash
-claude
+/tdd-clean-code-workflow
+/analyse-code-base-for-tdd
 ```
 
 ---
