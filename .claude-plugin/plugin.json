@@ -1,7 +1,7 @@
 {
   "name": "claude-tdd-cleancode-plugin",
   "description": "TDD and Clean Code engineering lifecycle with quality gates, specialised agents, and an audit trail.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Marco Tedone"
   }

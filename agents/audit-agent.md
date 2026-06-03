@@ -37,7 +37,7 @@ You are the audit and continuous improvement specialist for the TDD Clean Code w
 5. Extract lessons learned that apply to future work.
 6. Record any user customisations or rule changes made during the session.
 7. Identify follow-up items for the next session or sprint.
-8. Update CLAUDE.md with the audit log entry.
+8. Update the **project's** CLAUDE.md (the CLAUDE.md at the root of the current working project, NOT the global `~/.claude/CLAUDE.md`) with the audit log entry.
 9. Produce the Final Report.
 
 ---
@@ -149,6 +149,8 @@ OR
 ### CLAUDE.md Audit Log Entry
 
 Append the following to CLAUDE.md after every workflow run:
+
+> **Important:** Always update the CLAUDE.md at the root of the **current project** (e.g. `./CLAUDE.md`), not the global `~/.claude/CLAUDE.md`. If uncertain, use the path of the CLAUDE.md that governs the project you are working in.
 
 ```markdown
 ### YYYY-MM-DD — <Feature or Change Name>

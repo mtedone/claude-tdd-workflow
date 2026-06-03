@@ -286,6 +286,30 @@ Follow-Up:
 
 ---
 
+### Step 12 — Commit/Push Gate `[GATE 9]`
+
+**No agent.** Gate enforced by Claude directly.
+
+This is the final gate. It is reached only after Gate 8 (Audit) has passed and the audit report is complete.
+
+Claude presents a summary to the user before running any git command:
+
+```
+I am ready to commit and push. Here is what will happen:
+
+Commit: <proposed message>
+Files:  <list of changed files>
+Push:   <remote>/<branch>
+
+Do you want me to proceed?
+```
+
+Claude MUST wait for explicit user confirmation before running `git commit` or `git push`.
+
+**Gate 9 condition:** Explicit user confirmation received before any commit or push.
+
+---
+
 ## Orchestration Rules
 
 1. No phase may begin before its preceding gate is passed.
@@ -294,6 +318,8 @@ Follow-Up:
 4. Agents may be re-invoked within a phase if findings require iteration.
 5. Security agent may block phase transition if unresolved HIGH/CRITICAL findings exist.
 6. Audit agent is always the final invocation.
+7. Gate 9 (Commit/Push) is always the last gate and is reached only after Gate 8 (Audit) passes.
+8. Claude must never commit or push autonomously — explicit user confirmation is mandatory for every commit and push.
 
 ---
 
@@ -369,3 +395,4 @@ Produced by `audit-agent` at the conclusion of every workflow run:
 | Gate 6 | Final Security | No unresolved HIGH/CRITICAL findings |
 | Gate 7 | Operational Readiness | All readiness checks passed |
 | Gate 8 | Audit | Report produced, CLAUDE.md updated |
+| Gate 9 | Commit/Push | Explicit user confirmation received before any git commit or push |
